@@ -6,12 +6,12 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 NAME = 'HunterRockWebsocket'
-DESCRIPTION = 'HunterRockWebsocket.'
-URL = 'https://github.com/hunterrockmedya'
+DESCRIPTION = 'HunterRockWebsocket'
+URL = 'https://github.com/hunterrockmedya/HunterRockWebsocket'
 EMAIL = 'hunterrockmedya@gmail.com'
 AUTHOR = 'HunterRock'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = None
+VERSION = '1.0.2'
 
 REQUIRED = [
 ]
