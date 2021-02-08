@@ -97,25 +97,24 @@ class HunterRockWebsocket(threading.Thread):
                     self.add_capability(self.capability)
 
     def _send(self, command, message):
-        # Send data back to Twitch.
         sent = self.conn.send(bytes("{}{}\r\n".format(command, message), 'UTF-8'))
         if sent == 0:
-            raise RuntimeError("Socket connection broken, sent is 0")
+            raise RuntimeError("Soket bağlantısı kesildi, gönderilen 0")
 
     def _initialize_websocket(self):
         while True:
             try:
-                logging.debug("Attempting to initialize websocket connection.")
+                logging.debug("Websocket bağlantısını başlatmaya çalışılıyor.")
                 self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 
                 #TODO Error handle socket.gaierror: [Errno 11001] getaddrinfo failed and other errors
                 self.conn.settimeout(330)
                 
                 self.conn.connect( (self.host, self.port) )
-                logging.debug("Websocket connection initialized.")
+                logging.debug("Websocket bağlantısı başlatıldı.")
                 return
             except socket.gaierror:
-                logging.debug("Failed to connect. Sleeping and retrying...")
+                logging.debug("Bağlanma hatası. yeniden deneyin...")
                 time.sleep(5)
 
     def join_channel(self, chan):
