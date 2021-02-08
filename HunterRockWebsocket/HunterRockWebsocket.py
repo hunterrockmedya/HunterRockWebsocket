@@ -12,7 +12,6 @@ class HunterRockWebsocket(threading.Thread):
         self.name = "HunterRockWebsocket"
         self._stop_event = threading.Event()
 
-        # Variables
         self.host = host
         self.port = port
         self.chan = chan
@@ -24,18 +23,23 @@ class HunterRockWebsocket(threading.Thread):
 
         self.data = str()
 
-        # Lambda Functions.
         self.send_join = lambda message, command="JOIN ": self._send(command, message)
+        self.send_pong = lambda message="", command="PONG ": self._send(command, message)
+        self.send_ping = lambda message="", command="PING ": self._send(command, message)
         self.send_message = lambda message, command="PRIVMSG ": self._send("{}{} :".format(command, self.chan.lower()), message) if self.live else print(message)
         self.send_whisper = lambda sender, message: self.send_message(f"/w {sender} {message}")
         self.send_nick = lambda message, command="NICK ": self._send(command, message)
         self.send_pass = lambda message, command="PASS ": self._send(command, message)
+        self.send_part = lambda message, command="PART ": self._send(command, message)
+        self.send_req = lambda message, command="CAP REQ :twitch.tv/": self._send(command, message)
 
     def start_nonblocking(self):
         self._initialize_websocket()
         self.start()
         self.login(self.nick, self.auth)
         self.join_channel(self.chan)
+        if self.capability is not None:
+            self.add_capability(self.capability)
 
     def start_bot(self):
         try:
@@ -50,8 +54,11 @@ class HunterRockWebsocket(threading.Thread):
         self._stop_event.set()
     
     def join(self):
+
         self.stop()
+
         self.conn.shutdown(socket.SHUT_WR)
+
         threading.Thread.join(self)
     
     def stopped(self):
@@ -61,8 +68,10 @@ class HunterRockWebsocket(threading.Thread):
         while not self.stopped():
             try:
                 try:
+
                     packet = self.conn.recv(8192).decode('UTF-8')
                 except UnicodeDecodeError:
+
                     continue
 
                 self.data += packet
@@ -72,6 +81,8 @@ class HunterRockWebsocket(threading.Thread):
                 for line in data_split:
                     m = Message(line)
 
+                    if m.type == "PING":
+                        self.send_pong()
 
                     self.callback(m)
 
@@ -82,27 +93,29 @@ class HunterRockWebsocket(threading.Thread):
                     self.login(self.nick, self.auth)
                 if len(self.chan) > 1:
                     self.join_channel(self.chan)
+                if self.capability is not None:
+                    self.add_capability(self.capability)
 
     def _send(self, command, message):
         # Send data back to Twitch.
         sent = self.conn.send(bytes("{}{}\r\n".format(command, message), 'UTF-8'))
         if sent == 0:
-            raise RuntimeError("Soket bağlantısı kesildi, gönderilen 0")
+            raise RuntimeError("Socket connection broken, sent is 0")
 
     def _initialize_websocket(self):
         while True:
             try:
-                logging.debug("Websocket bağlantısını başlatmaya çalışılıyor.")
+                logging.debug("Attempting to initialize websocket connection.")
                 self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 
                 #TODO Error handle socket.gaierror: [Errno 11001] getaddrinfo failed and other errors
                 self.conn.settimeout(330)
                 
                 self.conn.connect( (self.host, self.port) )
-                logging.debug("Websocket bağlantısı başlatıldı.")
+                logging.debug("Websocket connection initialized.")
                 return
             except socket.gaierror:
-                logging.debug("Bağlanma hatası. yeniden deneyin...")
+                logging.debug("Failed to connect. Sleeping and retrying...")
                 time.sleep(5)
 
     def join_channel(self, chan):
@@ -121,3 +134,13 @@ class HunterRockWebsocket(threading.Thread):
         self.auth = auth
         self.send_pass(self.auth)
         self.send_nick(self.nick.lower())
+
+    def add_capability(self, capability):
+        assert type(capability) in [list, str]
+
+        self.capability = capability
+        if type(capability) == list:
+            for cap in capability:
+                self.send_req(cap.lower())
+        else:
+            self.send_req(capability.lower())
