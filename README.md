@@ -4,7 +4,7 @@
 
 Mail: hunterrockmedya@gmail.com
 
-Discord: hunterrock#5363
+Discord: hunterrock#6353
 
 Telegram: hunterrock
 
